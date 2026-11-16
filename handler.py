@@ -136,7 +136,7 @@ def render_timeline(inp, td, source, out):
     concat_list = os.path.join(td, "concat.txt")
     with open(concat_list, "w", encoding="utf-8") as f:
         for path in scene_files:
-            f.write("file '" + path.replace("'", "'\\''") + "'\\n")
+            f.write("file '" + path.replace("'", "'\\''") + "'\n")
     run_ffmpeg([
         FFMPEG, "-hide_banner", "-y", "-f", "concat", "-safe", "0",
         "-i", concat_list, "-c", "copy", "-movflags", "+faststart", out
