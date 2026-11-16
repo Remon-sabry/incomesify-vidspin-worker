@@ -51,4 +51,6 @@ def handler(job):
         except Exception as e:
             return {"status": "FAILED", "error": str(e)[:1000]}
 
-runpod.serverless.start({"handler": handler})
+
+if __name__ == "__main__":
+    runpod.serverless.start({"handler": handler})
