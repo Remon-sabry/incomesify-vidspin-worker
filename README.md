@@ -1,35 +1,48 @@
-# Incomesify VidSpin — Runpod Serverless FFmpeg worker
+# Incomesify VidSpin — RunPod Serverless FFmpeg worker
 
-Initial CPU-based FFmpeg worker scaffold for a Runpod Serverless Queue endpoint.
+CPU-based FFmpeg worker for the VidSpin WordPress plugin. It supports both simple continuous clips and a multi-scene timeline.
 
-**Not production-ready or yet connected to the VidSpin WordPress plugin.** It currently accepts one source video URL and one short-lived R2 presigned PUT URL, renders a vertical MP4, and uploads the result. It does not yet support the complete VidSpin timeline, multiple scene assets, separate caption files, voiceover, or full Studio settings.
+## Build and deploy
+The Dockerfile runs `rp_handler.py`. GitHub Actions builds and pushes `ghcr.io/remon-sabry/incomesify-vidspin-worker:latest` when the worker source changes. After a successful image build, update/redeploy the RunPod endpoint to pull the new image.
 
-## Build
-Runpod can build this repository from GitHub. The Dockerfile is at the repository root.
-
-## Job input
+## Simple clip input
 ```json
 {
   "input": {
-    "source_url": "SHORT_LIVED_SIGNED_GET_URL",
-    "upload_url": "SHORT_LIVED_SIGNED_PUT_URL",
-    "output_key": "vidspin/user-id/project-id/short-id.mp4",
+    "source_url": "HTTPS_SOURCE_VIDEO_URL",
+    "upload_url": "ONE_TIME_WORKER_UPLOAD_URL",
     "start": 12.5,
     "duration": 45,
     "width": 1080,
-    "height": 1920,
-    "preset": "veryfast",
-    "crf": 23,
-    "video_filter": "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1"
+    "height": 1920
   }
 }
 ```
 
-## Initial endpoint
-- Queue endpoint
-- CPU worker; no GPU required for this initial implementation
-- Start with one active worker and zero idle workers
-- Keep max workers low until load-tested
+## Multi-scene timeline input
+The WordPress plugin creates the source and scene asset URLs, then submits a timeline manifest:
+```json
+{
+  "input": {
+    "source_url": "HTTPS_SOURCE_VIDEO_URL",
+    "upload_url": "ONE_TIME_WORKER_UPLOAD_URL",
+    "timeline": [
+      {
+        "source_start": 12.5,
+        "duration": 8,
+        "layout": "center",
+        "background_volume": 0.2,
+        "broll_url": "OPTIONAL_BROLL_VIDEO_URL",
+        "voiceover_url": "OPTIONAL_VOICE_AUDIO_URL",
+        "voiceover_seek": 0,
+        "ass_url": "OPTIONAL_ASS_CAPTIONS_URL"
+      }
+    ]
+  }
+}
+```
+
+Each timeline scene can use source footage, optional B-roll, optional narration, and optional ASS captions. Supported layouts are `center`, `fit`, and `split`. The worker renders each scene and concatenates the result into one MP4. It limits jobs to 30 scenes and 180 seconds for the simple clip path; each scene is capped at 40 seconds.
 
 ## Security
-Never put R2 access keys in job payloads or worker environment variables. WordPress should create short-lived, object-specific presigned GET/PUT URLs. Keep the Runpod API key server-side.
+The worker accepts short-lived source/asset URLs and a one-time output upload URL. Keep the RunPod API key on the WordPress server. Do not place Cloudflare R2 access keys in job payloads or in the worker image.
