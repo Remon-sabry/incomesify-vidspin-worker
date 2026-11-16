@@ -4,5 +4,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certi
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-COPY handler.py .
-CMD ["python", "-u", "handler.py"]
+COPY rp_handler.py .
+CMD ["python", "-u", "rp_handler.py"]
